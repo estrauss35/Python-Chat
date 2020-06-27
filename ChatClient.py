@@ -1,43 +1,66 @@
-import socket
 import threading
+import ChatSender
+import ChatListener
+
 
 class ChatClient(threading.Thread):
 
-    def __init__(self):
-        self.clients = None
-        self.connected = None
+    def __init__(self, config_file):
+        threading.Thread.__init__(self)
+        self.config_file = open(config_file)
+        self.client_dict = {}
 
-        self.host = input("Enter the host ip: ")
-        self.port = int(input("Enter port: "))
-        self.setConnection(True)
+        self.port = None
+        self.host = None
+        self.is_connected = False
 
-    def addClients(self, newClient):
+        try:
+            self.host = self.config_file.readline(0).split(" ")[1].split(":")[0]
+            self.port = int(self.config_file.readline(0).split(" ")[1].split(":")[1])
+
+        except:
+            print(Exception)
+            print("Could not access file.")
+
+    def add_client(self, new_client):
         count = 0
-        for client in self.clients:
-            count = client
+        for client in self.client_dict:
+            count = client[0]
             count += 1
-        self.clients[count] = newClient
+        new_client[count] = new_client
 
-    def removeClients(self, leavingClient):
-        for client in self.clients:
-            if self.clients.get(client).getIp() == leavingClient.getIp():
-                self.clients.get(client).setConnection(False)
-                self.clients.pop(client)
+    def remove_client(self, target_client):
+        for client in self.client_dict:
+            count = client[0]
+            if self.client_dict[count] == target_client:
+                self.client_dict.pop(count)
+                break
 
-    def setConnection(self, connectionStatus):
-        self.connected = connectionStatus
+    def set_connection(self, is_connected):
+        self.is_connected = is_connected
 
-    def getConnection(self):
-        return self.connected
+    def get_connection(self):
+        return self.is_connected
 
-    def getPort(self):
+    def get_port(self):
         return self.port
 
-    def getIp(self):
+    def get_ip(self):
         return self.host
 
-    def setIp(self, ip):
+    def set_ip(self, ip):
         self.host = ip
 
-    def setPort(self, port):
+    def set_port(self, port):
         self.port = port
+
+    def run(self):
+        sender = ChatSender.ChatSender(self)
+        listener = ChatListener.ChatListener(self)
+        try:
+            sender.start()
+            listener.start()
+        except:
+            print("Something went wrong, could not start client")
+            print(Exception)
+
